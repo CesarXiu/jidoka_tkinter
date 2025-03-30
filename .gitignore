@@ -1,0 +1,15 @@
+# Entorno virtual de Python
+jidoka/
+*.pyc
+__pycache__/
+instance/
+.env
+.DS_Store
+
+# Archivos de logs y caché
+*.log
+*.sqlite3
+
+# Archivos del IDE
+.vscode/
+.idea/
