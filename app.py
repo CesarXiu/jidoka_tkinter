@@ -40,19 +40,6 @@ except FileNotFoundError:
     print("Advertencia: No se pudo cargar la imagen 'head.png'.")
     report_image = None
 
-# Función para actualizar el reloj
-def update_clock():
-    current_time = datetime.now().strftime("%H:%M:%S")
-    clock_label.config(text=f"Hora actual: {current_time}")
-
-    if last_report_time:
-        elapsed_time = datetime.now() - last_report_time
-        elapsed_label.config(text=f"Tiempo desde el último reporte: {str(elapsed_time).split('.')[0]}")
-    else:
-        elapsed_label.config(text="Tiempo desde el último reporte: N/A")
-    
-    root.after(1000, update_clock)  # Actualizar cada segundo
-
 # Función para cambiar el estado del botón y la pantalla
 def toggle_button():
     global toggle_state, last_report_time
@@ -94,6 +81,20 @@ def toggle_button():
         
     # Cambiar el estado para el próximo clic
     toggle_state = not toggle_state
+    update_belt_color()
+# Función para actualizar el reloj
+def update_clock():
+    current_time = datetime.now().strftime("%H:%M:%S")
+    clock_label.config(text=f"Hora actual: {current_time}")
+
+    if last_report_time:
+        elapsed_time = datetime.now() - last_report_time
+        elapsed_label.config(text=f"Tiempo desde el último reporte: {str(elapsed_time).split('.')[0]}")
+    else:
+        elapsed_label.config(text="Tiempo desde el último reporte: N/A")
+    
+    root.after(1000, update_clock)  # Actualizar cada segundo
+
 
 # Función para simular el estado del botón GPIO (tecla 'b')
 def update_label(event=None):
@@ -120,6 +121,31 @@ if gpiozero_installed:
 
     # Iniciar la actualización del estado del botón GPIO
     root.after(100, gpio_button_check)
+def update_belt_color():
+    background_color = root.cget("bg")
+    if background_color == "yellow":
+        draw_belt("yellow", "#76c776")  # Fondo amarillo con verde más claro
+    else:
+        draw_belt("#2a3d66", "#90EE90")  # Fondo azul con verde claro
+def draw_belt(background_color="#2a3d66", section_color="#90EE90"):
+    belt_canvas.delete("all")
+    belt_canvas.configure(bg=background_color)  # Cambiar el fondo de la banda
+    
+    num_sections = 21  # Asegurar 21 secciones
+    section_width = 50  # Aumentado el tamaño
+    section_height = 120  # Aumentado el tamaño
+    padding = 10
+    for i in range(num_sections):
+        x1 = i * (section_width + padding)
+        y1 = 10
+        x2 = x1 + section_width
+        y2 = y1 + section_height
+        belt_canvas.create_rectangle(x1, y1, x2, y2, fill=section_color, outline="black")  # Verde más claro
+        belt_canvas.create_text(x1 + section_width / 2, y1 + section_height / 2, text=str(i + 1), font=("Arial", 16, "bold"), fill="black")
+
+belt_canvas = tk.Canvas(root, width=1300, height=200, bg="#2a3d66", bd=0, highlightthickness=0)
+belt_canvas.pack(pady=10)
+draw_belt()
 
 # Asignar la tecla 'b' para simular el estado del botón GPIO
 root.bind("<KeyPress-b>", update_label)
@@ -142,7 +168,7 @@ label_report.pack(pady=20)
 # Crear un Canvas para mostrar la imagen con transparencia
 canvas = tk.Canvas(root, width=500, height=500, bg="#2a3d66", bd=0, highlightthickness=0)
 canvas.pack(pady=20)
-
+3
 
 # Iniciar el reloj
 update_clock()
