@@ -15,6 +15,7 @@ COLOR_TEXT_BLACK = "black"
 COLOR_TEXT_RED = "red"
 COLOR_BELT_SECTION_LIGHT_GREEN = "#90EE90"
 COLOR_BELT_SECTION_DARKER_GREEN = "#76c776"
+MAX_TIME = 90000  # 90 segundos en milisegundos
 
 # Intentar importar gpiozero solo si estamos en una Raspberry Pi
 gpiozero_installed = False
@@ -42,6 +43,7 @@ root.configure(bg=COLOR_BG_DARK_BLUE)
 # Variables globales
 toggle_state = False
 last_report_time = None  # Tiempo del último reporte
+alert_timer = None  # Temporizador para el estado de alerta
 
 # Cargar la imagen para el mensaje de reporte con Pillow y manejar la transparencia
 try:
@@ -52,8 +54,8 @@ except FileNotFoundError:
     report_image = None
 
 def toggle_button():
-    global toggle_state, last_report_time
-    
+    global toggle_state, last_report_time, alert_timer
+
     if toggle_state:
         # Configuración para estado OK
         set_background_color(COLOR_BG_DARK_BLUE)
@@ -65,6 +67,11 @@ def toggle_button():
         )
         canvas.delete("all")
         last_report_time = datetime.now()
+
+        # Cancelar el temporizador si estaba activo
+        if alert_timer:
+            root.after_cancel(alert_timer)
+            alert_timer = None
     else:
         # Configuración para estado REPORTE
         set_background_color(COLOR_BG_YELLOW)
@@ -80,9 +87,24 @@ def toggle_button():
             canvas.create_image(250, 250, image=report_image)
         
         play_sound()
-    
+
+        # Iniciar el temporizador para cambiar a rojo después de 90 segundos
+        alert_timer = root.after(MAX_TIME, trigger_alert)
+
     toggle_state = not toggle_state
     update_belt_color()
+
+def trigger_alert():
+    """Cambia el fondo a rojo y reproduce el sonido si no se vuelve a OK en 90 segundos"""
+    set_background_color("red")
+    label_report.config(
+        text="¡ALERTA! Tiempo excedido",
+        font=("Arial", 30, "bold"),
+        fg="white",
+        bg="red"
+    )
+    play_sound()
+    update_belt_color()  # Asegurarse de actualizar el color de la banda
 
 def set_background_color(color):
     """Establece el color de fondo para todos los elementos principales"""
@@ -123,15 +145,14 @@ def update_label(event=None):
     global toggle_state
     if event and event.keysym == "b":
         toggle_button()
-    else:
-        toggle_state = False
-        toggle_button()
 
 def update_belt_color():
     """Actualiza el color de la banda según el estado actual"""
     background_color = root.cget("bg")
     if background_color == COLOR_BG_YELLOW:
         draw_belt(COLOR_BG_YELLOW, COLOR_BELT_SECTION_DARKER_GREEN)
+    elif background_color == "red":
+        draw_belt("red", "#ff6666")  # Fondo rojo y secciones en un tono más claro
     else:
         draw_belt(COLOR_BG_DARK_BLUE, COLOR_BELT_SECTION_LIGHT_GREEN)
 
